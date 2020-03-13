@@ -1,0 +1,27 @@
+---
+- hosts: puppet
+  gather_facts: no
+
+  tasks:
+    - name: Install packages
+      yum:
+        name: "{{ packages }}"
+      become: true
+      vars:
+        packages:
+          - curl
+          - jq
+
+    - name: Get license count
+      shell: >
+        curl -s http://localhost:8080/metrics/v2/read/puppetlabs.puppetdb.population:name=num-nodes | jq -r .value.Value
+      register: output
+      changed_when: false
+
+    - name: Print license count
+      debug: var=output.stdout
+
+    - name: Total count
+      debug:
+        msg: "{{ ansible_play_hosts | map('extract', hostvars, 'output') | map(attribute='stdout') | map('int') | sum(start=0)}}"
+      run_once: true
